@@ -1,0 +1,47 @@
+{
+  "institution_name": "JFCL School & College",
+  "tagline": "Excellence in Education, Character and Innovation",
+  "established": "Est. 1992 | EIIN: 109823",
+  "nav": {
+    "home": "Home",
+    "about": "About Us",
+    "academics": "Academics",
+    "teachers": "Teachers",
+    "notices": "Notices",
+    "admission": "Admission",
+    "gallery": "Gallery",
+    "events": "Events",
+    "results": "Public Results",
+    "contact": "Contact",
+    "portal_login": "Portal Login"
+  },
+  "common": {
+    "search": "Search...",
+    "filter": "Filter",
+    "all": "All",
+    "actions": "Actions",
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "no_data": "No records found.",
+    "demo_mode": "Demo Mode: All data shown is sample institutional data. No live changes are permanently stored.",
+    "print": "Print",
+    "download": "Download",
+    "back": "Back",
+    "status": "Status",
+    "date": "Date",
+    "read_more": "Read More",
+    "role": "Role",
+    "logout": "Log Out"
+  },
+  "dashboard": {
+    "admin": "Admin Dashboard",
+    "teacher": "Teacher Portal",
+    "student": "Student Portal",
+    "welcome": "Welcome back"
+  }
+}
