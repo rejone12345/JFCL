@@ -12,7 +12,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=7d
       - FRONTEND_URL=${FRONTEND_URL}
-      - COOKIE_SECURE=false
+      - COOKIE_SECURE=true
       - COOKIE_SAME_SITE=lax
     networks:
       - jfcl_network
@@ -25,6 +25,9 @@ services:
     restart: always
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
     networks:
