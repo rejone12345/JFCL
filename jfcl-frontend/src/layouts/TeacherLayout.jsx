@@ -42,8 +42,12 @@ export const TeacherLayout = () => {
           }`}
         >
           <div className="h-16 flex items-center justify-between px-6 bg-slate-950 border-b border-slate-800">
-            <Link to="/teacher/dashboard" className="flex items-center gap-2">
-              <GraduationCap className="w-6 h-6 text-blue-400" />
+            <Link to="/teacher/dashboard" className="flex items-center gap-2.5">
+              <img
+                src="/logo.jpg"
+                alt="JFCL Logo"
+                className="w-8 h-8 rounded-lg object-contain bg-white p-0.5"
+              />
               <span className="font-bold text-white text-sm tracking-wide">Teacher Portal</span>
             </Link>
             <button onClick={() => setSidebarOpen(false)} className="md:hidden text-slate-400">

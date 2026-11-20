@@ -13,9 +13,11 @@ export const Footer = () => {
           {/* Col 1: About */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 bg-blue-900 text-amber-400 rounded-lg flex items-center justify-center font-bold">
-                <GraduationCap className="w-5 h-5" />
-              </div>
+              <img
+                src="/logo.jpg"
+                alt="JFCL Logo"
+                className="w-9 h-9 rounded-lg object-contain bg-white p-0.5 shadow-sm"
+              />
               <span className="text-base font-bold text-white tracking-tight">
                 {t('institution_name')}
               </span>

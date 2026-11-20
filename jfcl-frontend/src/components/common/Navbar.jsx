@@ -50,9 +50,11 @@ export const Navbar = () => {
       {/* Main Header / Brand */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3.5 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-12 h-12 bg-blue-900 text-amber-400 rounded-xl flex items-center justify-center font-bold text-xl shadow-md border border-blue-800 group-hover:scale-105 transition-transform">
-            <GraduationCap className="w-7 h-7" />
-          </div>
+          <img
+            src="/logo.jpg"
+            alt="JFCL Logo"
+            className="w-12 h-12 rounded-xl object-contain shadow-md border border-slate-200 bg-white p-0.5 group-hover:scale-105 transition-transform"
+          />
           <div>
             <h1 className="text-lg sm:text-xl font-extrabold text-blue-950 tracking-tight leading-tight">
               {t('institution_name')}

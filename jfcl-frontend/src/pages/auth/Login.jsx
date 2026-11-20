@@ -56,9 +56,11 @@ export const Login = () => {
         <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
           {/* Header */}
           <div className="bg-blue-950 p-6 text-white text-center">
-            <div className="w-12 h-12 bg-blue-900 text-amber-400 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-inner">
-              <Lock className="w-6 h-6" />
-            </div>
+            <img
+              src="/logo.jpg"
+              alt="JFCL Logo"
+              className="w-14 h-14 rounded-2xl object-contain mx-auto mb-3 shadow-md bg-white p-1"
+            />
             <h2 className="text-xl font-bold">Institutional Portal Login</h2>
             <p className="text-xs text-slate-300 mt-1">
               Authorized credentials required for portal access
