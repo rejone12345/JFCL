@@ -28,15 +28,21 @@ export const Navbar = () => {
       <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 sm:px-8 border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
           <div className="flex items-center gap-4 text-[11px] sm:text-xs">
-            <span className="flex items-center gap-1">
+            <a href="tel:+88029876543" className="flex items-center gap-1 hover:text-white transition-colors">
               <Phone className="w-3.5 h-3.5 text-blue-400" /> +880 2-9876543
-            </span>
-            <span className="hidden sm:flex items-center gap-1">
+            </a>
+            <a href="mailto:info@jfcl.edu.bd" className="hidden sm:flex items-center gap-1 hover:text-white transition-colors">
               <Mail className="w-3.5 h-3.5 text-blue-400" /> info@jfcl.edu.bd
-            </span>
-            <span className="hidden md:flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-blue-400" /> Jamuna Fertilizer Campus, Sarishabari, Jamalpur
-            </span>
+            </a>
+            <a
+              href="https://www.google.com/maps/place/JFCL+School+and+College+Playground/@24.6739949,89.8268719,17z"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden md:flex items-center gap-1 hover:text-amber-300 transition-colors"
+              title="Open campus location on Google Maps"
+            >
+              <MapPin className="w-3.5 h-3.5 text-amber-400" /> Jamuna Fertilizer Campus, Sarishabari, Jamalpur
+            </a>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-[11px] font-medium text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/50">

@@ -34,13 +34,21 @@ export const Contact = () => {
             </p>
 
             <div className="space-y-4 text-xs">
-              <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <a
+                href="https://www.google.com/maps/place/JFCL+School+and+College+Playground/@24.6739949,89.8268719,17z"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 p-2.5 -mx-2.5 rounded-xl hover:bg-white/10 transition-colors group"
+                title="Click to view JFCL on Google Maps"
+              >
+                <MapPin className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                 <div>
-                  <p className="font-bold text-white">Campus Address:</p>
+                  <p className="font-bold text-white flex items-center gap-1.5">
+                    Campus Address <span className="text-[10px] bg-amber-400/20 text-amber-300 border border-amber-400/30 px-1.5 py-0.2 rounded">Google Maps ↗</span>
+                  </p>
                   <p className="text-slate-300">JFCL Campus, Tarakandi, Sarishabari, Jamalpur - 2055, Bangladesh</p>
                 </div>
-              </div>
+              </a>
 
               <div className="flex items-start gap-3">
                 <Phone className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
@@ -119,6 +127,35 @@ export const Contact = () => {
               Submit Message
             </Button>
           </form>
+        </div>
+      </div>
+
+      {/* Embedded Google Map Section */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-blue-900" /> Interactive Campus Map
+            </h3>
+            <p className="text-xs text-slate-500">Easily navigate to JFCL School & College inside the Jamuna Fertilizer township.</p>
+          </div>
+          <a
+            href="https://www.google.com/maps/place/JFCL+School+and+College+Playground/@24.6739949,89.8268719,17z"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Open in Google Maps App ↗
+          </a>
+        </div>
+        <div className="w-full h-80 rounded-xl overflow-hidden border border-slate-200">
+          <iframe
+            title="JFCL School & College Location"
+            src="https://maps.google.com/maps?q=24.6739949,89.8268719&hl=en&z=16&output=embed"
+            className="w-full h-full border-0"
+            loading="lazy"
+            allowFullScreen
+          />
         </div>
       </div>
     </div>

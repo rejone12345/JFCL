@@ -65,10 +65,16 @@ export const Footer = () => {
               Contact & Location
             </h4>
             <div className="space-y-2.5 text-xs text-slate-400">
-              <p className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                <span>JFCL Campus, Tarakandi, Sarishabari, Jamalpur, Bangladesh</span>
-              </p>
+              <a
+                href="https://www.google.com/maps/place/JFCL+School+and+College+Playground/@24.6739949,89.8268719,17z"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-2 hover:text-amber-300 transition-colors group"
+                title="View on Google Maps"
+              >
+                <MapPin className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                <span>JFCL Campus, Tarakandi, Sarishabari, Jamalpur, Bangladesh <span className="text-[10px] text-amber-400 underline ml-1">(View on Map)</span></span>
+              </a>
               <p className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-blue-400 shrink-0" />
                 <span>+880 2-9876543, +880 1711-000000</span>
