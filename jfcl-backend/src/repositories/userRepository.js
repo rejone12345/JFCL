@@ -41,10 +41,20 @@ export const findUserById = async (id) => {
       return User.findById(id);
     }
     return User.findOne({
-      $or: [{ id: id }, { studentId: id }, { teacherId: id }],
+      $or: [{ id: id }, { studentId: id }, { teacherId: id }, { email: id.toLowerCase() }],
     });
   }
-  return inMemoryUsers.find((u) => u.id === id) ?? null;
+  const lower = id.toLowerCase();
+  return (
+    inMemoryUsers.find(
+      (u) =>
+        u.id === id ||
+        u.teacherId === id ||
+        u.studentId === id ||
+        u.email?.toLowerCase() === lower ||
+        u.username?.toLowerCase() === lower
+    ) ?? null
+  );
 };
 
 export const findUserByEmail = async (email) => {
@@ -79,13 +89,25 @@ export const findUserByCredential = async (identifier) => {
   );
 };
 
-export const getAllUsers = async (role = null) => {
+export const getAllUsers = async (role = null, includeActivationCode = false) => {
   if (isDbConnected()) {
     const filter = role ? { role } : {};
     const list = await User.find(filter);
-    return list.map(sanitize);
+    return list.map((doc) => {
+      const json = doc.toJSON();
+      if (includeActivationCode && doc.activationCode) {
+        json.activationCode = doc.activationCode;
+      }
+      return json;
+    });
   }
-  return (role ? inMemoryUsers.filter((u) => u.role === role) : inMemoryUsers).map(sanitize);
+  return (role ? inMemoryUsers.filter((u) => u.role === role) : inMemoryUsers).map((u) => {
+    const safe = sanitize(u);
+    if (includeActivationCode && u.activationCode) {
+      safe.activationCode = u.activationCode;
+    }
+    return safe;
+  });
 };
 
 export const getSafeUser = async (id) => {
@@ -93,8 +115,8 @@ export const getSafeUser = async (id) => {
   return sanitize(user);
 };
 
-export const getSafeUsers = async (role) => {
-  return getAllUsers(role);
+export const getSafeUsers = async (role, includeActivationCode = false) => {
+  return getAllUsers(role, includeActivationCode);
 };
 
 export const createUser = async (userData) => {
@@ -134,24 +156,36 @@ export const updateUser = async (id, updates) => {
 
 export const updateUserPassword = async (id, newPassword) => {
   const hashed = await bcrypt.hash(newPassword, 12);
+  const lower = id.toLowerCase();
   if (isDbConnected()) {
     const query = mongoose.Types.ObjectId.isValid(id)
       ? { _id: id }
-      : { $or: [{ id }, { studentId: id }, { teacherId: id }] };
+      : { $or: [{ id }, { studentId: id }, { teacherId: id }, { email: lower }] };
     const res = await User.updateOne(query, { password: hashed });
     return res.modifiedCount > 0;
   }
-  const idx = inMemoryUsers.findIndex((u) => u.id === id);
+  const idx = inMemoryUsers.findIndex(
+    (u) =>
+      u.id === id ||
+      u.studentId === id ||
+      u.teacherId === id ||
+      u.email?.toLowerCase() === lower ||
+      u.username?.toLowerCase() === lower
+  );
   if (idx === -1) return false;
   inMemoryUsers[idx].password = hashed;
   return true;
 };
 
-export const activateUser = async (studentId, activationCode) => {
+export const activateUser = async (idOrIdentifier, activationCode) => {
   if (isDbConnected()) {
     const user = await User.findOne({
-      role: 'student',
-      $or: [{ studentId }, { _id: mongoose.Types.ObjectId.isValid(studentId) ? studentId : null }],
+      $or: [
+        { studentId: idOrIdentifier },
+        { teacherId: idOrIdentifier },
+        { email: idOrIdentifier.toLowerCase() },
+        { _id: mongoose.Types.ObjectId.isValid(idOrIdentifier) ? idOrIdentifier : null },
+      ],
       activationCode,
     });
     if (!user) return false;
@@ -162,8 +196,10 @@ export const activateUser = async (studentId, activationCode) => {
   }
   const idx = inMemoryUsers.findIndex(
     (u) =>
-      u.role === 'student' &&
-      (u.studentId === studentId || u.id === studentId) &&
+      (u.studentId === idOrIdentifier ||
+       u.teacherId === idOrIdentifier ||
+       u.id === idOrIdentifier ||
+       u.email === idOrIdentifier.toLowerCase()) &&
       u.activationCode === activationCode
   );
   if (idx === -1) return false;

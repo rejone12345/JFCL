@@ -35,9 +35,9 @@ export const loginService = async ({ identifier, password, role }) => {
     throw new AppError('This account has been deactivated. Please contact administration.', 403);
   }
 
-  if (user.role === 'student' && !user.isActivated) {
+  if ((user.role === 'student' || user.role === 'teacher') && user.isActivated === false) {
     throw new AppError(
-      'Your student account has not been activated yet. Please use the Account Activation page.',
+      `Your ${user.role} account has not been activated yet. Please use the Account Activation page.`,
       403
     );
   }
@@ -60,18 +60,18 @@ export const loginService = async ({ identifier, password, role }) => {
 };
 
 /**
- * Activate a student account with their institution-issued code.
+ * Activate an institutional student or teacher account with their code.
  */
-export const activateAccountService = async ({ studentId, activationCode, password }) => {
-  const success = await activateUser(studentId, activationCode);
+export const activateAccountService = async ({ idOrIdentifier, activationCode, password }) => {
+  const success = await activateUser(idOrIdentifier, activationCode);
   if (!success) {
     throw new AppError(
-      'Invalid Student ID or activation code. Please contact administration.',
+      'Invalid ID / Email or activation code. Please contact administration.',
       400
     );
   }
   // Set the user's chosen password
-  await updateUserPassword(studentId, password);
+  await updateUserPassword(idOrIdentifier, password);
   return { message: 'Account activated successfully. You may now log in.' };
 };
 

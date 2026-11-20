@@ -18,7 +18,8 @@ import {
 import { AppError } from '../utils/AppError.js';
 
 export const listTeachers = async ({ search } = {}) => {
-  let teachers = await getSafeUsers('teacher');
+  // Pass true to include activationCode so admin can distribute it
+  let teachers = await getSafeUsers('teacher', true);
   if (search) {
     const q = search.toLowerCase();
     teachers = teachers.filter(
@@ -36,14 +37,22 @@ export const getTeacherById = async (id) => {
 
 export const createTeacher = async (data) => {
   const newId = `TCH${Date.now()}`;
-  return createUser({
+  const code  = `JFCL-TCH-${Math.floor(1000 + Math.random() * 9000)}`;
+  const created = await createUser({
     ...data,
-    id:        newId,
-    teacherId: newId,
-    role:      'teacher',
-    status:    'active',
-    password:  'Teacher@Temp1234', // admin must set through proper channel
+    id:             newId,
+    teacherId:      newId,
+    role:           'teacher',
+    status:         'active',
+    isActivated:    false,
+    activationCode: code,
+    password:       `Temp@${Date.now()}`, // Temporary password; teacher must activate
   });
+  return {
+    ...created,
+    teacherId: newId,
+    activationCode: code,
+  };
 };
 
 export const updateTeacher = async (id, data) => {

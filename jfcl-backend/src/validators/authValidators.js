@@ -12,7 +12,7 @@ export const loginSchema = z.object({
 });
 
 export const activateAccountSchema = z.object({
-  studentId:      z.string().min(1, 'Student ID is required').trim(),
+  idOrIdentifier: z.string().min(1, 'Student ID, Teacher ID or Email is required').trim(),
   activationCode: z.string().min(1, 'Activation code is required').trim(),
   password:       z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword:z.string().min(1, 'Please confirm your password'),

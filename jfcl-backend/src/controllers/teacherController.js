@@ -32,7 +32,11 @@ export const addTeacher = async (req, res, next) => {
   try {
     const body    = createTeacherSchema.parse(req.body);
     const teacher = await createTeacher(body);
-    return sendSuccess(res, { message: 'Teacher account created.', data: teacher, status: 201 });
+    return sendSuccess(res, {
+      message: `Teacher ${teacher.name} created. Activation code: ${teacher.activationCode || 'Generated'}`,
+      data: teacher,
+      status: 201,
+    });
   } catch (err) { next(err); }
 };
 

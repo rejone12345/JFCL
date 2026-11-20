@@ -1,21 +1,34 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import { StatCard } from '../../components/common/StatCard';
 import { demoClasses, demoSubjects, demoResultSubmissions, demoNotices } from '../../data/demoData';
-import { Layers, BookOpen, Edit3, Award, Users, CheckSquare, Bell, ArrowRight } from 'lucide-react';
+import { Layers, BookOpen, Edit3, Award, Users, CheckSquare, Bell, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export const TeacherDashboard = () => {
+  const { user } = useAuth();
+
   return (
     <div className="space-y-6">
       {/* Welcome banner */}
       <div className="bg-gradient-to-r from-blue-900 to-slate-900 text-white p-6 rounded-2xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl font-bold">Welcome back, Dr. Shamsun Nahar</h1>
-          <p className="text-xs text-blue-200 mt-1">Senior Teacher, Department of Physics • Academic Session 2026</p>
+          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+            <span className="text-[11px] font-mono font-bold text-amber-300 bg-white/10 px-2.5 py-0.5 rounded border border-white/20">
+              Teacher ID: {user?.teacherId || user?.id || 'TCH-FACULTY'}
+            </span>
+            <span className="text-[10px] font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" /> Verified Faculty
+            </span>
+          </div>
+          <h1 className="text-xl font-bold">Welcome back, {user?.name || 'Dr. Shamsun Nahar'}</h1>
+          <p className="text-xs text-blue-200 mt-1">
+            {user?.designation || 'Senior Teacher'}, Department of {user?.department || 'Physics'} • Academic Session 2026
+          </p>
         </div>
         <Link
           to="/teacher/marks-entry"
-          className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs shadow inline-flex items-center gap-2"
+          className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs shadow inline-flex items-center gap-2 shrink-0"
         >
           <Edit3 className="w-4 h-4" /> Go to Marks Entry
         </Link>

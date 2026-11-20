@@ -1,6 +1,7 @@
 // =============================================================================
 // tests/runTests.js — Phase 1 Backend Automated Test Suite
 // =============================================================================
+process.env.NODE_ENV = 'test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import app from '../app.js';
@@ -148,7 +149,7 @@ const runAllTests = async () => {
 
     await test('Student activation succeeds with valid code', async () => {
       const res = await request('POST', '/api/v1/auth/activate', {
-        studentId: 'STU1005',
+        idOrIdentifier: 'STU1005',
         activationCode: 'JFCL-DEMO-5555',
         password: 'NewPassword@1234',
         confirmPassword: 'NewPassword@1234'
@@ -218,6 +219,77 @@ const runAllTests = async () => {
       });
       assert.equal(res.status, 200);
       assert.equal(res.body.success, true);
+    });
+
+    // 4b. Teacher Provisioning & Activation
+    let newTeacherId;
+    let newTeacherActivationCode;
+    await test('Admin can provision a new teacher with Teacher ID and Activation Code', async () => {
+      const res = await request('POST', '/api/v1/admin/teachers', {
+        name: 'Prof. Anisur Rahman',
+        designation: 'Senior Lecturer',
+        department: 'Physics',
+        email: 'anisur.test@jfcl.edu.bd',
+        phone: '01711223344',
+        qualification: 'M.Sc in Physics'
+      }, { Authorization: `Bearer ${adminToken}` });
+
+      assert.equal(res.status, 201);
+      assert.equal(res.body.success, true);
+      assert.ok(res.body.data.teacherId);
+      assert.ok(res.body.data.activationCode);
+      assert.match(res.body.data.activationCode, /^JFCL-TCH-/);
+      newTeacherId = res.body.data.teacherId;
+      newTeacherActivationCode = res.body.data.activationCode;
+    });
+
+    await test('Admin teacher list includes activation code for pending teacher', async () => {
+      const res = await request('GET', '/api/v1/admin/teachers', null, {
+        Authorization: `Bearer ${adminToken}`
+      });
+      assert.equal(res.status, 200);
+      const teacher = res.body.data.find(t => t.teacherId === newTeacherId);
+      assert.ok(teacher);
+      assert.equal(teacher.activationCode, newTeacherActivationCode);
+    });
+
+    await test('Unactivated teacher login is rejected with 403', async () => {
+      const res = await request('POST', '/api/v1/auth/login', {
+        identifier: newTeacherId,
+        password: 'TemporaryPassword',
+        role: 'teacher'
+      });
+      assert.equal(res.status, 403);
+      assert.match(res.body.message, /not been activated/i);
+    });
+
+    await test('Teacher activation succeeds with teacher ID and activation code', async () => {
+      const res = await request('POST', '/api/v1/auth/activate', {
+        idOrIdentifier: newTeacherId,
+        activationCode: newTeacherActivationCode,
+        password: 'FacultyPassword@123',
+        confirmPassword: 'FacultyPassword@123'
+      });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+    });
+
+    await test('Activated teacher can log in and profile shows Teacher ID without activation code', async () => {
+      const loginRes = await request('POST', '/api/v1/auth/login', {
+        identifier: newTeacherId,
+        password: 'FacultyPassword@123',
+        role: 'teacher'
+      });
+      assert.equal(loginRes.status, 200);
+      assert.equal(loginRes.body.success, true);
+      const newTeacherToken = loginRes.body.data.token;
+
+      const profileRes = await request('GET', '/api/v1/teacher/profile', null, {
+        Authorization: `Bearer ${newTeacherToken}`
+      });
+      assert.equal(profileRes.status, 200);
+      assert.equal(profileRes.body.data.teacherId, newTeacherId);
+      assert.equal(profileRes.body.data.activationCode, undefined);
     });
 
     // 5. Teacher Marks Entry & Result Workflow

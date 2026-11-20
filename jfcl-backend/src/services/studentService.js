@@ -12,7 +12,7 @@ import {
 import { AppError } from '../utils/AppError.js';
 
 export const listStudents = async ({ classFilter, search } = {}) => {
-  let students = await getSafeUsers('student');
+  let students = await getSafeUsers('student', true);
   if (classFilter && classFilter !== 'All') {
     students = students.filter((s) => s.class === classFilter);
   }
