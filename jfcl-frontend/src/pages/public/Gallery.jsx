@@ -6,7 +6,7 @@ export const Gallery = () => {
   const categories = ['All', 'Campus', 'Sports', 'Labs', 'Cultural', 'Academic'];
 
   const items = [
-    { id: 1, title: 'Main Institutional Academic Building', category: 'Campus' },
+    { id: 1, title: 'Main Institutional Academic Building', category: 'Campus', image: '/schoolpic.jpg' },
     { id: 2, title: 'Annual Sports Parade & Flag Hoisting', category: 'Sports' },
     { id: 3, title: 'Senior Physics Practical Laboratory', category: 'Labs' },
     { id: 4, title: 'Victory Day Cultural Drama Performance', category: 'Cultural' },
@@ -14,7 +14,7 @@ export const Gallery = () => {
     { id: 6, title: 'Inter-College Football Final', category: 'Sports' },
     { id: 7, title: 'Annual Science Fair Exhibition', category: 'Academic' },
     { id: 8, title: 'Computer Information Center Workstations', category: 'Labs' },
-    { id: 9, title: 'Campus Green Boulevard & Playground', category: 'Campus' },
+    { id: 9, title: 'Campus Green Boulevard & Playground', category: 'Campus', image: '/schoolpic.jpg' },
   ];
 
   const filtered = filter === 'All' ? items : items.filter((i) => i.category === filter);
@@ -48,7 +48,15 @@ export const Gallery = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {filtered.map((item) => (
           <div key={item.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <PlaceholderImage label={item.title} className="h-52 w-full rounded-none" />
+            {item.image ? (
+              <img
+                src={item.image}
+                alt={item.title}
+                className="h-52 w-full object-cover hover:scale-105 transition-transform duration-300"
+              />
+            ) : (
+              <PlaceholderImage label={item.title} className="h-52 w-full rounded-none" />
+            )}
             <div className="p-4">
               <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider bg-amber-50 px-2 py-0.5 rounded">
                 {item.category}

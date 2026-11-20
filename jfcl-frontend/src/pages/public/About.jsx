@@ -17,7 +17,11 @@ export const About = () => {
       {/* History & Establishment */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
         <div>
-          <PlaceholderImage label="Historic Campus Archive Photo" className="h-72 w-full rounded-2xl shadow-md" />
+          <img
+            src="/schoolpic.jpg"
+            alt="JFCL Campus Building"
+            className="h-72 w-full object-cover rounded-2xl shadow-lg border border-slate-200 hover:scale-[1.01] transition-transform duration-300"
+          />
         </div>
         <div className="space-y-4">
           <h2 className="text-2xl font-bold text-slate-900">Historical Legacy</h2>

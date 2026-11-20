@@ -60,8 +60,12 @@ export const Home = () => {
           </div>
 
           <div className="lg:col-span-5">
-            <div className="bg-white/5 p-3 rounded-2xl border border-white/10 backdrop-blur-sm shadow-2xl">
-              <PlaceholderImage label="Institution Main Campus & Academic Building" className="h-80 sm:h-96 w-full rounded-xl bg-slate-800 text-slate-400" />
+            <div className="bg-white/5 p-3 rounded-2xl border border-white/10 backdrop-blur-sm shadow-2xl overflow-hidden">
+              <img
+                src="/schoolpic.jpg"
+                alt="JFCL School & College Main Campus"
+                className="h-80 sm:h-96 w-full object-cover rounded-xl shadow-inner hover:scale-[1.02] transition-transform duration-300"
+              />
             </div>
           </div>
         </div>
