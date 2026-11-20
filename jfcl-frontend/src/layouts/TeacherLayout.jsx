@@ -33,7 +33,6 @@ export const TeacherLayout = () => {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col antialiased">
-      <DemoBanner />
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
         <aside
