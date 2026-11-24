@@ -22,6 +22,7 @@ export const createStudentSchema = z.object({
   name:  baseStudent.name,
   roll:  baseStudent.roll,
   class: baseStudent.class,
+  email: z.string().email('Valid email is required for Student 2FA OTP').trim().toLowerCase(),
 });
 
 export const updateStudentSchema = z.object({

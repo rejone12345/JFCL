@@ -22,6 +22,12 @@ export const authenticate = (req, res, next) => {
 
   try {
     const decoded = verifyToken(token);
+    if (decoded.purpose === '2fa_pending') {
+      return sendError(res, {
+        message: 'Two-factor authentication verification is required to complete login.',
+        status: 401,
+      });
+    }
     req.user = { id: decoded.id, role: decoded.role, name: decoded.name };
     next();
   } catch (err) {

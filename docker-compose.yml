@@ -14,6 +14,12 @@ services:
       - FRONTEND_URL=${FRONTEND_URL}
       - COOKIE_SECURE=true
       - COOKIE_SAME_SITE=lax
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-}
     networks:
       - jfcl_network
 

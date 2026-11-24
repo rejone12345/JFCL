@@ -54,6 +54,10 @@ const userSchema = new mongoose.Schema(
     dob: { type: String, trim: true },
     isActivated: { type: Boolean, default: true },
     activationCode: { type: String, default: null },
+    twoFactorOtpHash:       { type: String, default: null },
+    twoFactorOtpExpires:    { type: Date, default: null },
+    twoFactorOtpAttempts:   { type: Number, default: 0 },
+    twoFactorOtpLastSentAt: { type: Date, default: null },
   },
   {
     timestamps: true,
@@ -64,6 +68,10 @@ const userSchema = new mongoose.Schema(
         delete ret.__v;
         delete ret.password;
         delete ret.activationCode;
+        delete ret.twoFactorOtpHash;
+        delete ret.twoFactorOtpExpires;
+        delete ret.twoFactorOtpAttempts;
+        delete ret.twoFactorOtpLastSentAt;
         return ret;
       },
     },

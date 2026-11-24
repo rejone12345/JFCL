@@ -29,3 +29,12 @@ export const changePasswordSchema = z.object({
   message: 'Passwords do not match',
   path: ['confirmPassword'],
 });
+
+export const verifyOtpSchema = z.object({
+  tempToken: z.string().min(1, 'Verification token is required'),
+  otp:       z.string().trim().regex(/^\d{6}$/, 'Verification code must be 6 digits'),
+});
+
+export const resendOtpSchema = z.object({
+  tempToken: z.string().min(1, 'Verification token is required'),
+});

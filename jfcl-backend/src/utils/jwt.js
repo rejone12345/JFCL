@@ -16,6 +16,19 @@ export const signToken = (payload) => {
 };
 
 /**
+ * Sign a short-lived pre-auth token used only to complete 2FA OTP verification.
+ * @param {{ id: string, role: string }} payload
+ * @returns {string} signed pre-auth JWT (10m)
+ */
+export const signTwoFactorToken = (payload) => {
+  return jwt.sign(
+    { id: payload.id, role: payload.role, purpose: '2fa_pending' },
+    env.JWT_SECRET,
+    { expiresIn: '10m' }
+  );
+};
+
+/**
  * Verify a JWT and return its decoded payload.
  * Throws JsonWebTokenError or TokenExpiredError on failure.
  * @param {string} token

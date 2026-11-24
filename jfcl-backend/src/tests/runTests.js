@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import app from '../app.js';
 import { initUserRepository } from '../repositories/userRepository.js';
+import { getLastTestOtp } from '../services/emailService.js';
 
 let server;
 let baseUrl;
@@ -81,7 +82,28 @@ const runAllTests = async () => {
     // 2. Auth Tests
     let adminToken, teacherToken, studentToken;
 
-    await test('Admin login with valid credentials succeeds', async () => {
+    const loginWith2FA = async (identifier, password, role, emailForOtp) => {
+      const step1 = await request('POST', '/api/v1/auth/login', { identifier, password, role });
+      assert.equal(step1.status, 200);
+      assert.equal(step1.body.success, true);
+      assert.equal(step1.body.data.requires2FA, true);
+      assert.ok(step1.body.data.tempToken);
+      assert.equal(step1.body.data.token, undefined);
+
+      const otp = getLastTestOtp(emailForOtp);
+      assert.match(otp, /^\d{6}$/);
+
+      const step2 = await request('POST', '/api/v1/auth/verify-otp', {
+        tempToken: step1.body.data.tempToken,
+        otp,
+      });
+      assert.equal(step2.status, 200);
+      assert.equal(step2.body.success, true);
+      assert.ok(step2.body.data.token);
+      return step2;
+    };
+
+    await test('Admin login with valid credentials succeeds in single step without 2FA', async () => {
       const res = await request('POST', '/api/v1/auth/login', {
         identifier: 'admin@jfcl.edu.bd',
         password: 'Admin@1234',
@@ -90,30 +112,17 @@ const runAllTests = async () => {
       assert.equal(res.status, 200);
       assert.equal(res.body.success, true);
       assert.ok(res.body.data.token);
+      assert.ok(!res.body.data.requires2FA);
       adminToken = res.body.data.token;
     });
 
-    await test('Teacher login with teacher ID and password succeeds', async () => {
-      const res = await request('POST', '/api/v1/auth/login', {
-        identifier: 'TCH004',
-        password: 'Teacher@1234',
-        role: 'teacher'
-      });
-      assert.equal(res.status, 200);
-      assert.equal(res.body.success, true);
-      assert.ok(res.body.data.token);
+    await test('Teacher login with teacher ID and password completes Email OTP 2FA', async () => {
+      const res = await loginWith2FA('TCH004', 'Teacher@1234', 'teacher', 'shamsun@jfcl.edu.bd');
       teacherToken = res.body.data.token;
     });
 
-    await test('Student login with roll number and password succeeds', async () => {
-      const res = await request('POST', '/api/v1/auth/login', {
-        identifier: '101',
-        password: 'Student@1234',
-        role: 'student'
-      });
-      assert.equal(res.status, 200);
-      assert.equal(res.body.success, true);
-      assert.ok(res.body.data.token);
+    await test('Student login with roll number and password completes Email OTP 2FA', async () => {
+      const res = await loginWith2FA('101', 'Student@1234', 'student', 'rahim.101@student.jfcl.edu.bd');
       studentToken = res.body.data.token;
     });
 
@@ -157,14 +166,86 @@ const runAllTests = async () => {
       assert.equal(res.status, 200);
       assert.equal(res.body.success, true);
 
-      // Verify newly activated student can now log in
-      const loginRes = await request('POST', '/api/v1/auth/login', {
-        identifier: '105',
-        password: 'NewPassword@1234',
-        role: 'student'
-      });
+      // Verify newly activated student can now log in with Email OTP 2FA
+      const loginRes = await loginWith2FA('105', 'NewPassword@1234', 'student', 'mehedi.105@student.jfcl.edu.bd');
       assert.equal(loginRes.status, 200);
       assert.equal(loginRes.body.success, true);
+    });
+
+    await test('Pre-auth 2FA tempToken cannot access protected endpoints (401)', async () => {
+      const step1 = await request('POST', '/api/v1/auth/login', {
+        identifier: '101',
+        password: 'Student@1234',
+        role: 'student'
+      });
+      assert.equal(step1.status, 200);
+      const tempToken = step1.body.data.tempToken;
+
+      const profileRes = await request('GET', '/api/v1/student/profile', null, {
+        Authorization: `Bearer ${tempToken}`
+      });
+      assert.equal(profileRes.status, 401);
+
+      const meRes = await request('GET', '/api/v1/auth/me', null, {
+        Authorization: `Bearer ${tempToken}`
+      });
+      assert.equal(meRes.status, 401);
+    });
+
+    await test('Resend OTP issues a fresh code that completes login', async () => {
+      const step1 = await request('POST', '/api/v1/auth/login', {
+        identifier: 'TCH004',
+        password: 'Teacher@1234',
+        role: 'teacher'
+      });
+      assert.equal(step1.status, 200);
+      const tempToken = step1.body.data.tempToken;
+
+      const resendRes = await request('POST', '/api/v1/auth/resend-otp', { tempToken });
+      assert.equal(resendRes.status, 200);
+      assert.equal(resendRes.body.success, true);
+
+      const freshOtp = getLastTestOtp('shamsun@jfcl.edu.bd');
+      assert.match(freshOtp, /^\d{6}$/);
+
+      const verifyRes = await request('POST', '/api/v1/auth/verify-otp', {
+        tempToken,
+        otp: freshOtp
+      });
+      assert.equal(verifyRes.status, 200);
+      assert.ok(verifyRes.body.data.token);
+    });
+
+    await test('Wrong OTP fails with 401 and locks out after 5 failed attempts with 429', async () => {
+      const step1 = await request('POST', '/api/v1/auth/login', {
+        identifier: '101',
+        password: 'Student@1234',
+        role: 'student'
+      });
+      assert.equal(step1.status, 200);
+      const tempToken = step1.body.data.tempToken;
+      const realOtp = getLastTestOtp('rahim.101@student.jfcl.edu.bd');
+      const wrongOtp = realOtp === '000000' ? '999999' : '000000';
+
+      for (let i = 0; i < 4; i++) {
+        const failRes = await request('POST', '/api/v1/auth/verify-otp', {
+          tempToken,
+          otp: wrongOtp
+        });
+        assert.equal(failRes.status, 401);
+      }
+
+      const lockoutRes = await request('POST', '/api/v1/auth/verify-otp', {
+        tempToken,
+        otp: wrongOtp
+      });
+      assert.equal(lockoutRes.status, 429);
+
+      const postLockoutRes = await request('POST', '/api/v1/auth/verify-otp', {
+        tempToken,
+        otp: realOtp
+      });
+      assert.equal(postLockoutRes.status, 400);
     });
 
     // 3. Authorization & Role Checks
@@ -193,6 +274,7 @@ const runAllTests = async () => {
       const res = await request('POST', '/api/v1/admin/students', {
         name: 'Automated Test Student',
         roll: '999',
+        email: 'autotest.999@student.jfcl.edu.bd',
         class: 'Class 10',
         section: 'A',
         group: 'Science',
@@ -274,14 +356,13 @@ const runAllTests = async () => {
       assert.equal(res.body.success, true);
     });
 
-    await test('Activated teacher can log in and profile shows Teacher ID without activation code', async () => {
-      const loginRes = await request('POST', '/api/v1/auth/login', {
-        identifier: newTeacherId,
-        password: 'FacultyPassword@123',
-        role: 'teacher'
-      });
-      assert.equal(loginRes.status, 200);
-      assert.equal(loginRes.body.success, true);
+    await test('Activated teacher can log in with Email OTP 2FA and profile shows Teacher ID without activation code', async () => {
+      const loginRes = await loginWith2FA(
+        newTeacherId,
+        'FacultyPassword@123',
+        'teacher',
+        'anisur.test@jfcl.edu.bd'
+      );
       const newTeacherToken = loginRes.body.data.token;
 
       const profileRes = await request('GET', '/api/v1/teacher/profile', null, {
@@ -361,26 +442,13 @@ const runAllTests = async () => {
       assert.equal(found.guardian, 'Md. Shahidul Islam');
     });
 
-    await test('Registered student can sign in using Roll Number and Password', async () => {
-      const res = await request('POST', '/api/v1/auth/login', {
-        identifier: selfRegRoll,
-        password: selfRegPassword,
-        role: 'student'
-      });
-      assert.equal(res.status, 200);
-      assert.equal(res.body.success, true);
-      assert.ok(res.body.data.token);
+    await test('Registered student can sign in using Roll Number and Password with Email OTP 2FA', async () => {
+      const res = await loginWith2FA(selfRegRoll, selfRegPassword, 'student', selfRegEmail);
       assert.equal(res.body.data.user.studentId, selfRegStudentId);
     });
 
-    await test('Registered student can sign in using Email and Password and load own profile', async () => {
-      const loginRes = await request('POST', '/api/v1/auth/login', {
-        identifier: selfRegEmail,
-        password: selfRegPassword,
-        role: 'student'
-      });
-      assert.equal(loginRes.status, 200);
-      assert.equal(loginRes.body.success, true);
+    await test('Registered student can sign in using Email and Password with Email OTP 2FA and load own profile', async () => {
+      const loginRes = await loginWith2FA(selfRegEmail, selfRegPassword, 'student', selfRegEmail);
       selfRegToken = loginRes.body.data.token;
 
       const profileRes = await request('GET', '/api/v1/student/profile', null, {
