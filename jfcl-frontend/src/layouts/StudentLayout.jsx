@@ -80,8 +80,10 @@ export const StudentLayout = () => {
           <div className="p-4 bg-slate-950 border-t border-slate-800">
             <div className="flex items-center justify-between">
               <div className="truncate">
-                <p className="text-xs font-semibold text-white truncate">{user?.name || 'Rahim Ahmed'}</p>
-                <p className="text-[10px] text-emerald-400 uppercase font-mono">Roll: 101 | Class 10</p>
+                <p className="text-xs font-semibold text-white truncate">{user?.name || 'Student'}</p>
+                <p className="text-[10px] text-emerald-400 uppercase font-mono">
+                  Roll: {user?.roll || 'N/A'} | {user?.class || 'Student'}
+                </p>
               </div>
               <button
                 onClick={handleLogout}

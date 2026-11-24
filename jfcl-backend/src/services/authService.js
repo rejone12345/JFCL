@@ -3,6 +3,8 @@
 // =============================================================================
 import {
   findUserByCredential,
+  findUserByEmail,
+  findStudentByRoll,
   findUserById,
   verifyPassword,
   activateUser,
@@ -18,7 +20,7 @@ import { AppError } from '../utils/AppError.js';
  * @returns {{ token: string, user: object }}
  */
 export const loginService = async ({ identifier, password, role }) => {
-  const user = await findUserByCredential(identifier);
+  const user = await findUserByCredential(identifier, role);
 
   if (!user) {
     throw new AppError('Invalid credentials. Please check your ID and password.', 401);
@@ -51,12 +53,55 @@ export const loginService = async ({ identifier, password, role }) => {
   const payload = { id: userId, role: user.role, name: user.name };
   const token   = signToken(payload);
 
-  const raw = user.toObject ? user.toObject() : { ...user };
+  const raw = user.toJSON ? user.toJSON() : { ...user };
   delete raw.password;
   delete raw.activationCode;
   raw.id = userId;
 
   return { token, user: raw };
+};
+
+/**
+ * Self-register a student account. Stores user in MongoDB and allows immediate sign in
+ * with Roll Number or Email + Password.
+ */
+export const registerStudentService = async (data) => {
+  const email = data.email.trim().toLowerCase();
+  const roll  = data.roll.trim();
+
+  const existingEmail = await findUserByEmail(email);
+  if (existingEmail) {
+    throw new AppError('An account with this email address already exists.', 409);
+  }
+
+  const existingRoll = await findStudentByRoll(roll);
+  if (existingRoll) {
+    throw new AppError('A student with this roll number is already registered.', 409);
+  }
+
+  const studentId = `STU${Date.now()}`;
+  const created = await createUser({
+    id:             studentId,
+    studentId,
+    name:           data.name.trim(),
+    email,
+    roll,
+    class:          data.class,
+    section:        data.section || 'A',
+    group:          data.group || 'Science',
+    gender:         data.gender || undefined,
+    dob:            data.dob || '',
+    guardian:       data.guardianName.trim(),
+    phone:          data.phone || '',
+    contact:        data.phone || '',
+    password:       data.password,
+    role:           'student',
+    status:         'active',
+    isActivated:    true,
+    activationCode: null,
+  });
+
+  return { user: created };
 };
 
 /**
@@ -81,7 +126,7 @@ export const activateAccountService = async ({ idOrIdentifier, activationCode, p
 export const getCurrentUserService = async (userId) => {
   const user = await findUserById(userId);
   if (!user) throw new AppError('User not found.', 404);
-  const raw = user.toObject ? user.toObject() : { ...user };
+  const raw = user.toJSON ? user.toJSON() : { ...user };
   delete raw.password;
   delete raw.activationCode;
   raw.id = user.id || user._id?.toString();

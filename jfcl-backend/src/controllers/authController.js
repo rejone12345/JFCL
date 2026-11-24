@@ -3,7 +3,8 @@
 // =============================================================================
 import { sendSuccess, sendError } from '../utils/response.js';
 import { loginSchema, activateAccountSchema } from '../validators/authValidators.js';
-import { loginService, activateAccountService, getCurrentUserService } from '../services/authService.js';
+import { studentSignupSchema } from '../validators/studentValidators.js';
+import { loginService, registerStudentService, activateAccountService, getCurrentUserService } from '../services/authService.js';
 import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
 
@@ -49,5 +50,18 @@ export const activateAccount = async (req, res, next) => {
     const body   = activateAccountSchema.parse(req.body);
     const result = await activateAccountService(body);
     return sendSuccess(res, { message: result.message });
+  } catch (err) { next(err); }
+};
+
+/** POST /api/v1/auth/register-student */
+export const registerStudent = async (req, res, next) => {
+  try {
+    const body   = studentSignupSchema.parse(req.body);
+    const result = await registerStudentService(body);
+    return sendSuccess(res, {
+      message: 'Registration completed successfully! You can now sign in using your Roll Number or Email.',
+      data:    result.user,
+      status:  201,
+    });
   } catch (err) { next(err); }
 };

@@ -10,6 +10,17 @@ let inMemoryUsers = [];
 
 const isDbConnected = () => mongoose.connection.readyState === 1;
 
+/** Strip empty/null sparse unique fields so MongoDB sparse indexes don't collide */
+const cleanSparseFields = (obj) => {
+  const cleaned = { ...obj };
+  for (const key of ['email', 'username', 'teacherId', 'studentId']) {
+    if (cleaned[key] === '' || cleaned[key] === null) {
+      delete cleaned[key];
+    }
+  }
+  return cleaned;
+};
+
 /** Strip password from user object */
 const sanitize = (user) => {
   if (!user) return null;
@@ -64,35 +75,53 @@ export const findUserByEmail = async (email) => {
   return inMemoryUsers.find((u) => u.email === email?.toLowerCase()) ?? null;
 };
 
-export const findUserByCredential = async (identifier) => {
-  const lower = identifier?.toLowerCase();
+export const findStudentByRoll = async (roll) => {
+  const trimmed = roll?.trim();
+  if (!trimmed) return null;
   if (isDbConnected()) {
-    return User.findOne({
-      $or: [
-        { email: lower },
-        { username: lower },
-        { teacherId: identifier },
-        { studentId: identifier },
-        { roll: identifier },
-      ],
-    });
+    return User.findOne({ role: 'student', roll: trimmed });
   }
-  return (
-    inMemoryUsers.find(
-      (u) =>
-        u.email === lower ||
-        u.username === lower ||
-        u.teacherId === identifier ||
-        u.studentId === identifier ||
-        u.roll === identifier
-    ) ?? null
-  );
+  return inMemoryUsers.find((u) => u.role === 'student' && u.roll === trimmed) ?? null;
+};
+
+export const findUserByCredential = async (identifier, role = null) => {
+  const trimmed = identifier?.trim();
+  const lower = trimmed?.toLowerCase();
+  if (!trimmed) return null;
+
+  if (isDbConnected()) {
+    const orConditions = [
+      { email: lower },
+      { username: lower },
+      { teacherId: trimmed },
+      { studentId: trimmed },
+      { roll: trimmed },
+    ];
+    if (role) {
+      const roleMatch = await User.findOne({ role, $or: orConditions });
+      if (roleMatch) return roleMatch;
+    }
+    return User.findOne({ $or: orConditions });
+  }
+
+  const matchesIdentifier = (u) =>
+    u.email === lower ||
+    u.username === lower ||
+    u.teacherId === trimmed ||
+    u.studentId === trimmed ||
+    u.roll === trimmed;
+
+  if (role) {
+    const roleMatch = inMemoryUsers.find((u) => u.role === role && matchesIdentifier(u));
+    if (roleMatch) return roleMatch;
+  }
+  return inMemoryUsers.find(matchesIdentifier) ?? null;
 };
 
 export const getAllUsers = async (role = null, includeActivationCode = false) => {
   if (isDbConnected()) {
     const filter = role ? { role } : {};
-    const list = await User.find(filter);
+    const list = await User.find(filter).sort({ createdAt: -1 });
     return list.map((doc) => {
       const json = doc.toJSON();
       if (includeActivationCode && doc.activationCode) {
@@ -121,18 +150,19 @@ export const getSafeUsers = async (role, includeActivationCode = false) => {
 
 export const createUser = async (userData) => {
   const hashed = await bcrypt.hash(userData.password, 12);
+  const cleaned = cleanSparseFields(userData);
   if (isDbConnected()) {
     const doc = await User.create({
-      ...userData,
+      ...cleaned,
       password: hashed,
     });
     return sanitize(doc);
   }
   const newUser = {
-    ...userData,
-    id: userData.id || `USR${Date.now()}`,
+    ...cleaned,
+    id: cleaned.id || `USR${Date.now()}`,
     password: hashed,
-    status: userData.status || 'active',
+    status: cleaned.status || 'active',
     createdAt: new Date().toISOString(),
   };
   inMemoryUsers.push(newUser);
@@ -141,16 +171,19 @@ export const createUser = async (userData) => {
 
 export const updateUser = async (id, updates) => {
   const { password, role, ...safeUpdates } = updates;
+  const cleaned = cleanSparseFields(safeUpdates);
   if (isDbConnected()) {
     const query = mongoose.Types.ObjectId.isValid(id)
       ? { _id: id }
       : { $or: [{ id }, { studentId: id }, { teacherId: id }] };
-    const doc = await User.findOneAndUpdate(query, safeUpdates, { new: true });
+    const doc = await User.findOneAndUpdate(query, cleaned, { new: true });
     return sanitize(doc);
   }
-  const idx = inMemoryUsers.findIndex((u) => u.id === id);
+  const idx = inMemoryUsers.findIndex(
+    (u) => u.id === id || u.studentId === id || u.teacherId === id
+  );
   if (idx === -1) return null;
-  inMemoryUsers[idx] = { ...inMemoryUsers[idx], ...safeUpdates, updatedAt: new Date().toISOString() };
+  inMemoryUsers[idx] = { ...inMemoryUsers[idx], ...cleaned, updatedAt: new Date().toISOString() };
   return sanitize(inMemoryUsers[idx]);
 };
 
@@ -217,7 +250,9 @@ export const deleteUser = async (id) => {
     return res.deletedCount > 0;
   }
   const len = inMemoryUsers.length;
-  inMemoryUsers = inMemoryUsers.filter((u) => u.id !== id);
+  inMemoryUsers = inMemoryUsers.filter(
+    (u) => u.id !== id && u.studentId !== id && u.teacherId !== id
+  );
   return inMemoryUsers.length < len;
 };
 

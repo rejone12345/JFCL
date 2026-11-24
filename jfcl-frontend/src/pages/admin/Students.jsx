@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { demoStudents } from '../../data/demoData';
+import { adminApi } from '../../services/api';
 import { SearchBar } from '../../components/common/SearchBar';
 import { Select } from '../../components/common/Select';
 import { Button } from '../../components/common/Button';
@@ -12,7 +12,8 @@ import { Plus, Edit, Trash2, Eye } from 'lucide-react';
 
 export const AdminStudents = () => {
   const { addToast } = useToast();
-  const [students, setStudents] = useState(demoStudents);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('All');
 
@@ -24,47 +25,102 @@ export const AdminStudents = () => {
   const [form, setForm] = useState({
     name: '',
     roll: '',
+    email: '',
     class: 'Class 10',
     section: 'A',
     group: 'Science',
     contact: '',
-    guardian: ''
+    guardian: '',
   });
+
+  const loadStudents = async () => {
+    try {
+      setLoading(true);
+      const res = await adminApi.getStudents();
+      if (res.data) setStudents(res.data);
+    } catch (err) {
+      addToast(err.message || 'Failed to fetch student roster', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadStudents();
+  }, []);
 
   const filtered = students.filter((s) => {
     const matchClass = classFilter === 'All' || s.class === classFilter;
-    const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.roll.includes(search);
+    const q = search.toLowerCase();
+    const matchSearch =
+      !q ||
+      s.name?.toLowerCase().includes(q) ||
+      s.roll?.toLowerCase().includes(q) ||
+      s.email?.toLowerCase().includes(q) ||
+      s.studentId?.toLowerCase().includes(q);
     return matchClass && matchSearch;
   });
 
   const handleOpenAdd = () => {
     setCurrentStudent(null);
-    setForm({ name: '', roll: '', class: 'Class 10', section: 'A', group: 'Science', contact: '', guardian: '' });
+    setForm({
+      name: '',
+      roll: '',
+      email: '',
+      class: 'Class 10',
+      section: 'A',
+      group: 'Science',
+      contact: '',
+      guardian: '',
+    });
     setModalOpen(true);
   };
 
   const handleOpenEdit = (stu) => {
     setCurrentStudent(stu);
-    setForm({ ...stu });
+    setForm({
+      name: stu.name || '',
+      roll: stu.roll || '',
+      email: stu.email || '',
+      class: stu.class || 'Class 10',
+      section: stu.section || 'A',
+      group: stu.group || 'Science',
+      contact: stu.contact || stu.phone || '',
+      guardian: stu.guardian || '',
+    });
     setModalOpen(true);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (currentStudent) {
-      setStudents(students.map((s) => (s.id === currentStudent.id ? { ...s, ...form } : s)));
-      addToast('Student details updated successfully (demo state)!', 'success');
-    } else {
-      const newStu = { ...form, id: `STU${Date.now()}`, status: 'Active' };
-      setStudents([newStu, ...students]);
-      addToast('New student added successfully (demo state)!', 'success');
+    try {
+      if (currentStudent) {
+        await adminApi.updateStudent(currentStudent.id || currentStudent._id, form);
+        addToast('Student details updated successfully!', 'success');
+      } else {
+        const res = await adminApi.createStudent(form);
+        const codeMsg = res.data?.activationCode ? ` Activation Code: ${res.data.activationCode}` : '';
+        addToast(`New student added!${codeMsg}`, 'success');
+      }
+      setModalOpen(false);
+      loadStudents();
+    } catch (err) {
+      const firstFieldError = err.errors ? Object.values(err.errors)[0] : null;
+      addToast(firstFieldError || err.message || 'Failed to save student record', 'error');
     }
-    setModalOpen(false);
   };
 
-  const handleDelete = () => {
-    setStudents(students.filter((s) => s.id !== studentToDelete.id));
-    addToast('Student record removed.', 'info');
+  const handleDelete = async () => {
+    if (!studentToDelete) return;
+    try {
+      await adminApi.deleteStudent(studentToDelete.id || studentToDelete._id);
+      addToast('Student record removed from database.', 'info');
+      setDeleteDialogOpen(false);
+      setStudentToDelete(null);
+      loadStudents();
+    } catch (err) {
+      addToast(err.message || 'Failed to delete student record', 'error');
+    }
   };
 
   return (
@@ -72,7 +128,9 @@ export const AdminStudents = () => {
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Student Directory & Records</h1>
-          <p className="text-xs text-slate-500 mt-1">Manage enrolled student rosters, classes and profile credentials</p>
+          <p className="text-xs text-slate-500 mt-1">
+            Manage registered and enrolled student rosters, classes, and profile credentials
+          </p>
         </div>
         <Button variant="primary" size="sm" icon={Plus} onClick={handleOpenAdd}>
           Add New Student
@@ -80,71 +138,118 @@ export const AdminStudents = () => {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <SearchBar value={search} onChange={setSearch} placeholder="Search by student name or roll..." className="flex-1" />
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by student name, roll, ID or email..."
+          className="flex-1"
+        />
         <div className="w-full sm:w-48">
           <Select
             placeholder="All Classes"
             options={['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12']}
-            value={classFilter}
+            value={classFilter === 'All' ? '' : classFilter}
             onChange={(e) => setClassFilter(e.target.value || 'All')}
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
         <table className="w-full text-left text-xs">
           <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider">
             <tr>
-              <th className="px-6 py-3">Roll</th>
+              <th className="px-6 py-3">Roll / ID</th>
               <th className="px-6 py-3">Student Name</th>
               <th className="px-6 py-3">Class & Section</th>
               <th className="px-6 py-3">Group</th>
-              <th className="px-6 py-3">Guardian</th>
+              <th className="px-6 py-3">Guardian & Contact</th>
               <th className="px-6 py-3">Status</th>
               <th className="px-6 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-slate-700">
-            {filtered.map((s) => (
-              <tr key={s.id} className="hover:bg-slate-50">
-                <td className="px-6 py-3 font-mono font-bold text-slate-900">{s.roll}</td>
-                <td className="px-6 py-3 font-semibold text-slate-900">{s.name}</td>
-                <td className="px-6 py-3">{s.class} ({s.section})</td>
-                <td className="px-6 py-3">{s.group}</td>
-                <td className="px-6 py-3">{s.guardian}</td>
-                <td className="px-6 py-3">
-                  <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[11px] font-bold">
-                    {s.status}
-                  </span>
-                </td>
-                <td className="px-6 py-3 text-right space-x-2">
-                  <Link
-                    to={`/admin/students/${s.id}`}
-                    className="p-1.5 text-slate-500 hover:text-blue-900 inline-block"
-                    title="View Profile"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Link>
-                  <button
-                    onClick={() => handleOpenEdit(s)}
-                    className="p-1.5 text-slate-500 hover:text-amber-700 inline-block"
-                    title="Edit"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setStudentToDelete(s);
-                      setDeleteDialogOpen(true);
-                    }}
-                    className="p-1.5 text-slate-500 hover:text-rose-600 inline-block"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+            {loading ? (
+              <tr>
+                <td colSpan="7" className="text-center py-8 text-slate-400">
+                  Loading student directory...
                 </td>
               </tr>
-            ))}
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan="7" className="text-center py-8 text-slate-400">
+                  No student records found.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((s) => {
+                const recordId = s.id || s._id;
+                const isActivated = s.isActivated !== false;
+                return (
+                  <tr key={recordId} className="hover:bg-slate-50">
+                    <td className="px-6 py-3">
+                      <span className="font-mono font-bold text-slate-900 block">{s.roll || '—'}</span>
+                      <span className="text-[10px] font-mono text-slate-400">{s.studentId || recordId}</span>
+                    </td>
+                    <td className="px-6 py-3">
+                      <span className="font-semibold text-slate-900 block">{s.name}</span>
+                      {s.email && <span className="text-[11px] text-slate-500">{s.email}</span>}
+                    </td>
+                    <td className="px-6 py-3">
+                      {s.class || '—'} ({s.section || 'A'})
+                    </td>
+                    <td className="px-6 py-3">{s.group || 'General'}</td>
+                    <td className="px-6 py-3">
+                      <span className="block font-medium text-slate-800">{s.guardian || '—'}</span>
+                      {(s.contact || s.phone) && (
+                        <span className="text-[11px] text-slate-500">{s.contact || s.phone}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-3 space-y-1">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${
+                          isActivated
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {isActivated ? 'Active' : 'Pending Activation'}
+                      </span>
+                      {!isActivated && s.activationCode && (
+                        <span className="block font-mono text-[10px] text-amber-900 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded w-fit">
+                          Code: {s.activationCode}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-3 text-right space-x-2 whitespace-nowrap">
+                      <Link
+                        to={`/admin/students/${recordId}`}
+                        className="p-1.5 text-slate-500 hover:text-blue-900 inline-block"
+                        title="View Profile"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Link>
+                      <button
+                        onClick={() => handleOpenEdit(s)}
+                        className="p-1.5 text-slate-500 hover:text-amber-700 inline-block"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setStudentToDelete(s);
+                          setDeleteDialogOpen(true);
+                        }}
+                        className="p-1.5 text-slate-500 hover:text-rose-600 inline-block"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -176,6 +281,13 @@ export const AdminStudents = () => {
               onChange={(e) => setForm({ ...form, class: e.target.value })}
             />
           </div>
+          <Input
+            label="Email Address (Optional)"
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            placeholder="e.g. student@jfcl.edu.bd"
+          />
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Section"
@@ -216,7 +328,7 @@ export const AdminStudents = () => {
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={handleDelete}
         title="Delete Student Record?"
-        message={`Are you sure you want to remove ${studentToDelete?.name}? This action can be undone in demo state by refreshing.`}
+        message={`Are you sure you want to permanently remove ${studentToDelete?.name} from the database?`}
         confirmText="Delete"
         isDanger
       />

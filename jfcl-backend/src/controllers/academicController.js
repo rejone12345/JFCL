@@ -12,6 +12,7 @@ import {
   getInstitutionStats,
 } from '../repositories/academicRepository.js';
 import { AppError } from '../utils/AppError.js';
+import { getSafeUsers } from '../repositories/userRepository.js';
 
 // ── Sessions ─────────────────────────────────────────────────────────────────
 export const getSessions       = (req, res, next) => { try { return sendSuccess(res, { data: getAllSessions() }); } catch (e) { next(e); } };
@@ -46,4 +47,18 @@ export const getGrades         = (req, res, next) => { try { return sendSuccess(
 export const updateGrades      = (req, res, next) => { try { return sendSuccess(res, { data: replaceGradeConfig(req.body) }); } catch (e) { next(e); } };
 
 // ── Dashboard Stats ───────────────────────────────────────────────────────────
-export const getDashboardStats  = (req, res, next) => { try { return sendSuccess(res, { data: getInstitutionStats() }); } catch (e) { next(e); } };
+export const getDashboardStats = async (req, res, next) => {
+  try {
+    const [students, teachers] = await Promise.all([
+      getSafeUsers('student'),
+      getSafeUsers('teacher'),
+    ]);
+    return sendSuccess(res, {
+      data: {
+        ...getInstitutionStats(),
+        totalStudents: students.length,
+        totalTeachers: teachers.length,
+      },
+    });
+  } catch (e) { next(e); }
+};

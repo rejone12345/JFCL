@@ -34,6 +34,15 @@ export const errorHandler = (err, req, res, next) => {
     return sendError(res, { message: 'Session expired. Please log in again.', status: 401 });
   }
 
+  // --- MongoDB duplicate key error ---
+  if (err && err.code === 11000) {
+    const field = Object.keys(err.keyValue || {})[0] || 'field';
+    return sendError(res, {
+      message: `An account with this ${field} already exists.`,
+      status: 409,
+    });
+  }
+
   // --- Operational AppError ---
   if (err instanceof AppError) {
     return sendError(res, {

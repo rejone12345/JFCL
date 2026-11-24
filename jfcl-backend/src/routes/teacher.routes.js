@@ -37,11 +37,12 @@ router.get('/subjects', (req, res, next) => {
 });
 
 // Students in teacher's assigned classes
-router.get('/students', (req, res, next) => {
+router.get('/students', async (req, res, next) => {
   try {
     const myAssignments = getAssignmentsByTeacher(req.user.id);
     const myClasses     = myAssignments.map((a) => ({ classId: a.classId, section: a.section }));
-    const students      = getSafeUsers('student').filter((s) =>
+    const allStudents   = await getSafeUsers('student');
+    const students      = allStudents.filter((s) =>
       myClasses.some(
         (c) => c.classId === `CLS${s.class?.replace(/\D/g, '')}` || s.class?.includes(c.classId)
       )

@@ -35,6 +35,7 @@ export default api;
 // ── Authentication APIs ──────────────────────────────────────────────────────
 export const authApi = {
   login: (data) => api.post('/auth/login', data),
+  registerStudent: (data) => api.post('/auth/register-student', data),
   logout: () => api.post('/auth/logout'),
   getMe: () => api.get('/auth/me'),
   activateAccount: (data) => api.post('/auth/activate', data),

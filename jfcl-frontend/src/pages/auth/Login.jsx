@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { GraduationCap, Shield, User, Lock } from 'lucide-react';
 import { Button } from '../../components/common/Button';
@@ -8,8 +8,9 @@ import { LanguageSwitcher } from '../../components/common/LanguageSwitcher';
 import { useToast } from '../../components/common/Toast';
 
 export const Login = () => {
-  const [activeTab, setActiveTab] = useState('admin');
-  const [identifier, setIdentifier] = useState('');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.state?.role || 'admin');
+  const [identifier, setIdentifier] = useState(location.state?.identifier || '');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();

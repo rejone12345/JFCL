@@ -11,9 +11,9 @@ import { getAllExaminations } from '../repositories/academicRepository.js';
 import { getStudentResults } from '../services/resultService.js';
 
 /** GET /api/v1/student/profile */
-export const getOwnProfile = (req, res, next) => {
+export const getOwnProfile = async (req, res, next) => {
   try {
-    const profile = getSafeUser(req.user.id);
+    const profile = await getSafeUser(req.user.id);
     if (!profile) throw new AppError('Profile not found.', 404);
     return sendSuccess(res, { data: profile });
   } catch (err) { next(err); }
@@ -48,9 +48,10 @@ export const getNoticeForStudent = (req, res, next) => {
 };
 
 /** GET /api/v1/student/academics */
-export const getOwnAcademics = (req, res, next) => {
+export const getOwnAcademics = async (req, res, next) => {
   try {
-    const student = getSafeUser(req.user.id);
+    const student = await getSafeUser(req.user.id);
+    if (!student) throw new AppError('Student not found.', 404);
     const exams   = getAllExaminations().filter((e) => e.status === 'published');
     return sendSuccess(res, {
       data: {

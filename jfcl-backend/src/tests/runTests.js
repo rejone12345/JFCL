@@ -292,6 +292,107 @@ const runAllTests = async () => {
       assert.equal(profileRes.body.data.activationCode, undefined);
     });
 
+    // 4c. Student Self-Registration & Roll/Email Login
+    let selfRegStudentId;
+    let selfRegToken;
+    const selfRegEmail = 'sadia.reg@student.jfcl.edu.bd';
+    const selfRegRoll = '888';
+    const selfRegPassword = 'StudentPass@2026';
+
+    await test('Student can self-register via signup endpoint and data is stored', async () => {
+      const res = await request('POST', '/api/v1/auth/register-student', {
+        name: 'Sadia Afrin',
+        email: selfRegEmail,
+        phone: '01712345678',
+        class: 'Class 10',
+        section: 'A',
+        group: 'Science',
+        roll: selfRegRoll,
+        dob: '2010-04-12',
+        guardianName: 'Md. Shahidul Islam',
+        password: selfRegPassword,
+        confirmPassword: selfRegPassword
+      });
+
+      assert.equal(res.status, 201);
+      assert.equal(res.body.success, true);
+      assert.ok(res.body.data.studentId);
+      assert.equal(res.body.data.isActivated, true);
+      assert.equal(res.body.data.guardian, 'Md. Shahidul Islam');
+      assert.equal(res.body.data.contact, '01712345678');
+      selfRegStudentId = res.body.data.studentId;
+    });
+
+    await test('Duplicate student signup with same email or roll is rejected with 409', async () => {
+      const dupEmailRes = await request('POST', '/api/v1/auth/register-student', {
+        name: 'Duplicate Email Student',
+        email: selfRegEmail,
+        class: 'Class 10',
+        roll: '889',
+        guardianName: 'Guardian One',
+        password: selfRegPassword,
+        confirmPassword: selfRegPassword
+      });
+      assert.equal(dupEmailRes.status, 409);
+
+      const dupRollRes = await request('POST', '/api/v1/auth/register-student', {
+        name: 'Duplicate Roll Student',
+        email: 'another.sadia@student.jfcl.edu.bd',
+        class: 'Class 10',
+        roll: selfRegRoll,
+        guardianName: 'Guardian Two',
+        password: selfRegPassword,
+        confirmPassword: selfRegPassword
+      });
+      assert.equal(dupRollRes.status, 409);
+    });
+
+    await test('Registered student appears in Admin student roster', async () => {
+      const res = await request('GET', '/api/v1/admin/students', null, {
+        Authorization: `Bearer ${adminToken}`
+      });
+      assert.equal(res.status, 200);
+      const found = res.body.data.find((s) => s.studentId === selfRegStudentId);
+      assert.ok(found);
+      assert.equal(found.name, 'Sadia Afrin');
+      assert.equal(found.email, selfRegEmail);
+      assert.equal(found.roll, selfRegRoll);
+      assert.equal(found.class, 'Class 10');
+      assert.equal(found.guardian, 'Md. Shahidul Islam');
+    });
+
+    await test('Registered student can sign in using Roll Number and Password', async () => {
+      const res = await request('POST', '/api/v1/auth/login', {
+        identifier: selfRegRoll,
+        password: selfRegPassword,
+        role: 'student'
+      });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.ok(res.body.data.token);
+      assert.equal(res.body.data.user.studentId, selfRegStudentId);
+    });
+
+    await test('Registered student can sign in using Email and Password and load own profile', async () => {
+      const loginRes = await request('POST', '/api/v1/auth/login', {
+        identifier: selfRegEmail,
+        password: selfRegPassword,
+        role: 'student'
+      });
+      assert.equal(loginRes.status, 200);
+      assert.equal(loginRes.body.success, true);
+      selfRegToken = loginRes.body.data.token;
+
+      const profileRes = await request('GET', '/api/v1/student/profile', null, {
+        Authorization: `Bearer ${selfRegToken}`
+      });
+      assert.equal(profileRes.status, 200);
+      assert.equal(profileRes.body.data.name, 'Sadia Afrin');
+      assert.equal(profileRes.body.data.roll, selfRegRoll);
+      assert.equal(profileRes.body.data.email, selfRegEmail);
+      assert.equal(profileRes.body.data.studentId, selfRegStudentId);
+    });
+
     // 5. Teacher Marks Entry & Result Workflow
     let submissionId;
     await test('Teacher can initialize marks draft', async () => {

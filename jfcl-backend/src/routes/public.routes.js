@@ -28,9 +28,9 @@ router.get('/gallery', getPublicGallery);
 router.get('/results', publicResultSearch);
 
 // Public teacher directory
-router.get('/teachers', (req, res, next) => {
+router.get('/teachers', async (req, res, next) => {
   try {
-    const teachers = getSafeUsers('teacher');
+    const teachers = await getSafeUsers('teacher');
     return sendSuccess(res, { data: teachers });
   } catch (err) { next(err); }
 });

@@ -1,13 +1,33 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { StatCard } from '../../components/common/StatCard';
 import {
   Users, GraduationCap, Award, FileText, CheckSquare,
   Bell, Calendar, ArrowRight, Shield, Layers, BookOpen
 } from 'lucide-react';
+import { adminApi } from '../../services/api';
 import { demoStats, demoAdmissions, demoResultSubmissions, demoNotices } from '../../data/demoData';
 
 export const AdminDashboard = () => {
+  const [stats, setStats] = useState(demoStats);
+
+  useEffect(() => {
+    let active = true;
+    adminApi
+      .getStats()
+      .then((res) => {
+        if (active && res.data) {
+          setStats((prev) => ({ ...prev, ...res.data }));
+        }
+      })
+      .catch(() => {
+        // fallback to default stats
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -37,9 +57,9 @@ export const AdminDashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Enrolled Students" value={demoStats.totalStudents} icon={Users} color="blue" change="+54 this year" />
-        <StatCard title="Faculty Members" value={demoStats.totalTeachers} icon={GraduationCap} color="purple" change="68 Active" />
-        <StatCard title="Board Pass Rate" value={demoStats.passRate} icon={Award} color="emerald" change="Historic High" />
+        <StatCard title="Total Enrolled Students" value={stats.totalStudents} icon={Users} color="blue" change="Live Roster" />
+        <StatCard title="Faculty Members" value={stats.totalTeachers} icon={GraduationCap} color="purple" change="Active Faculty" />
+        <StatCard title="Board Pass Rate" value={stats.passRate} icon={Award} color="emerald" change="Historic High" />
         <StatCard title="Pending Admissions" value="14 Applications" icon={FileText} color="amber" />
       </div>
 

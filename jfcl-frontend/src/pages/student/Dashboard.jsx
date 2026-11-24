@@ -1,18 +1,25 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import { StatCard } from '../../components/common/StatCard';
 import { Award, BookOpen, CheckSquare, Bell, Printer, ArrowRight } from 'lucide-react';
 import { demoStudentResults, demoNotices } from '../../data/demoData';
 
 export const StudentDashboard = () => {
+  const { user } = useAuth();
   const result = demoStudentResults['STU1001'];
 
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-blue-900 to-slate-900 text-white p-6 rounded-2xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl font-bold">Welcome, {result.name}</h1>
-          <p className="text-xs text-blue-200 mt-1">Class: {result.class} ({result.section}) • Roll: {result.roll} • Science Group</p>
+          <span className="text-[10px] font-mono font-bold text-emerald-300 bg-white/10 px-2.5 py-0.5 rounded border border-white/20 inline-block mb-1.5">
+            Student ID: {user?.studentId || user?.id || 'STU-PORTAL'}
+          </span>
+          <h1 className="text-xl font-bold">Welcome, {user?.name || result.name}</h1>
+          <p className="text-xs text-blue-200 mt-1">
+            Class: {user?.class || result.class} ({user?.section || result.section}) • Roll: {user?.roll || result.roll} • {user?.group || 'General'} Group
+          </p>
         </div>
         <Link
           to="/student/marksheets"
