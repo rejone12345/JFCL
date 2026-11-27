@@ -282,9 +282,8 @@ export const AdminStudents = () => {
             />
           </div>
           <Input
-            label="Student Email Address (Used for 2FA OTP)"
+            label="Email Address (Optional)"
             type="email"
-            required={!currentStudent}
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             placeholder="e.g. student@jfcl.edu.bd"

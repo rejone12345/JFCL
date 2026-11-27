@@ -35,8 +35,6 @@ export default api;
 // ── Authentication APIs ──────────────────────────────────────────────────────
 export const authApi = {
   login: (data) => api.post('/auth/login', data),
-  verifyOtp: (data) => api.post('/auth/verify-otp', data),
-  resendOtp: (data) => api.post('/auth/resend-otp', data),
   registerStudent: (data) => api.post('/auth/register-student', data),
   logout: () => api.post('/auth/logout'),
   getMe: () => api.get('/auth/me'),

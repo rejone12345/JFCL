@@ -21,21 +21,13 @@ const cleanSparseFields = (obj) => {
   return cleaned;
 };
 
-/** Strip password and sensitive internal fields from user object */
+/** Strip password from user object */
 const sanitize = (user) => {
   if (!user) return null;
   if (user.toJSON) {
     return user.toJSON();
   }
-  const {
-    password,
-    activationCode,
-    twoFactorOtpHash,
-    twoFactorOtpExpires,
-    twoFactorOtpAttempts,
-    twoFactorOtpLastSentAt,
-    ...safe
-  } = user;
+  const { password, activationCode, ...safe } = user;
   return safe;
 };
 
@@ -266,66 +258,4 @@ export const deleteUser = async (id) => {
 
 export const verifyPassword = async (rawPassword, hashedPassword) => {
   return bcrypt.compare(rawPassword, hashedPassword);
-};
-
-const buildIdQuery = (id) =>
-  mongoose.Types.ObjectId.isValid(id)
-    ? { _id: id }
-    : { $or: [{ id }, { studentId: id }, { teacherId: id }] };
-
-export const saveUserTwoFactorOtp = async (id, { otpHash, expiresAt, lastSentAt }) => {
-  if (isDbConnected()) {
-    await User.updateOne(buildIdQuery(id), {
-      twoFactorOtpHash: otpHash,
-      twoFactorOtpExpires: expiresAt,
-      twoFactorOtpAttempts: 0,
-      twoFactorOtpLastSentAt: lastSentAt,
-    });
-    return true;
-  }
-  const idx = inMemoryUsers.findIndex(
-    (u) => u.id === id || u.studentId === id || u.teacherId === id
-  );
-  if (idx === -1) return false;
-  inMemoryUsers[idx].twoFactorOtpHash = otpHash;
-  inMemoryUsers[idx].twoFactorOtpExpires = expiresAt;
-  inMemoryUsers[idx].twoFactorOtpAttempts = 0;
-  inMemoryUsers[idx].twoFactorOtpLastSentAt = lastSentAt;
-  return true;
-};
-
-export const incrementUserTwoFactorAttempts = async (id) => {
-  if (isDbConnected()) {
-    const doc = await User.findOneAndUpdate(
-      buildIdQuery(id),
-      { $inc: { twoFactorOtpAttempts: 1 } },
-      { new: true }
-    );
-    return doc?.twoFactorOtpAttempts ?? 0;
-  }
-  const idx = inMemoryUsers.findIndex(
-    (u) => u.id === id || u.studentId === id || u.teacherId === id
-  );
-  if (idx === -1) return 0;
-  inMemoryUsers[idx].twoFactorOtpAttempts = (inMemoryUsers[idx].twoFactorOtpAttempts || 0) + 1;
-  return inMemoryUsers[idx].twoFactorOtpAttempts;
-};
-
-export const clearUserTwoFactorOtp = async (id) => {
-  if (isDbConnected()) {
-    await User.updateOne(buildIdQuery(id), {
-      twoFactorOtpHash: null,
-      twoFactorOtpExpires: null,
-      twoFactorOtpAttempts: 0,
-    });
-    return true;
-  }
-  const idx = inMemoryUsers.findIndex(
-    (u) => u.id === id || u.studentId === id || u.teacherId === id
-  );
-  if (idx === -1) return false;
-  inMemoryUsers[idx].twoFactorOtpHash = null;
-  inMemoryUsers[idx].twoFactorOtpExpires = null;
-  inMemoryUsers[idx].twoFactorOtpAttempts = 0;
-  return true;
 };
